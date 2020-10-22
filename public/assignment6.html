@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script src="m4.js" type="application/javascript"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"
+        integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+    <script src="webgl-utils.js" type="application/javascript"></script>
+    <script src="m3.js" type="application/javascript"></script>
+    <script src="assignment6.js"></script>
+    <title>A WebGL Mini CAD</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <style>
+        canvas {
+            border: 1px solid gray;
+        }
+    </style>
+</head>
+
+<body onload="init();render()">
+    <div class="container">
+
+        <h1>Assignment 6</h1>
+        <canvas id="canvas" width="500px" height="300px"></canvas><br />
+
+        <h2><label><input id="lookAt" type="checkbox" /> Look At</label></h2>
+        X: <input id="ltx" type="number" value="0" step="5" /><br />
+        Y: <input id="lty" type="number" value="0" step="5" /><br />
+        Z: <input id="ltz" type="number" value="0" step="5" /><br />
+
+        <h2>Camera Translation</h2>
+        X: <input id="ctx" type="number" value="0" step="5" /><br />
+        Y: <input id="cty" type="number" value="0" step="5" /><br />
+        Z: <input id="ctz" type="number" value="0" step="5" /><br />
+
+        <h2>Camera Rotation</h2>
+        X: <input id="crx" type="number" value="0" step="2" /><br />
+        Y: <input id="cry" type="number" value="0" step="2" /><br />
+        Z: <input id="crz" type="number" value="0" step="2" /><br />
+        <h2>First Person</h2>
+        <button id = "turnLeft" onclick="webglUtils.updateCameraTranslation_rotateLeft()">&laquo;</button>
+        <button id = "up" onclick="webglUtils.updateCameraTranslation_forward()">&uarr;</button>
+        <button id = "turnRight" onclick="webglUtils.updateCameraTranslation_rotateRight()">&raquo;</button><br />
+        <button id = "left" onclick="webglUtils.updateCameraTranslation_left()">&larr;</button>
+        <button id = "down" onclick="webglUtils.updateCameraTranslation_backward()">&darr;</button>
+        <button id = "right" onclick="webglUtils.updateCameraTranslation_right()">&rarr;</button>
+
+        <h2>Translation</h2>
+        X: <input id="tx" type="number" value="0" step="5" /><br />
+        Y: <input id="ty" type="number" value="0" step="5" /><br />
+        Z: <input id="tz" type="number" value="0" step="5" /><br />
+        <h2>Scaling</h2>
+        X: <input id="sx" type="number" value="1" step="0.5" /><br />
+        Y: <input id="sy" type="number" value="1" step="0.5" /><br />
+        Z: <input id="sz" type="number" value="1" min="0" step="0.2" /><br />
+        <h2>Rotation</h2>
+        X: <input id="rx" type="number" value="0" step="2" /><br />
+        Y: <input id="ry" type="number" value="0" step="2" /><br />
+        Z: <input id="rz" type="number" value="0" step="2" /><br />
+        <h2>Field of view</h2>
+        X: <input id="fv" type="number" value="0" step="2" /><br />
+        <h2>Color</h2>
+        <input id="color" type="color"><br />
+
+        <h2>Object List</h2>
+        <ol id="object-list">
+        </ol>
+
+        <br />
+        <label>
+            <input type="radio" name="shape" value="RECTANGLE" checked />
+            Rectangle
+        </label><br />
+        <label>
+            <input type="radio" name="shape" value="TRIANGLE" />
+            Triangle
+        </label><br />
+        <label>
+            <input type="radio" name="shape" value="STAR" />
+            Star</label><br />
+        <label>
+            <input type="radio" name="shape" value="CIRCLE" />
+            Circle
+        </label>
+
+    </div>
+
+    <script id="vertex-shader-3d" type="x-shader/x-vertex">
+        attribute vec4 a_coords;
+        uniform mat4 u_matrix;
+        uniform vec4 u_color;
+        varying vec4 v_color;
+        void main() {
+          // Multiply the position by the matrix.
+          gl_Position = u_matrix * a_coords;
+          v_color = u_color;
+        }
+      </script>
+
+    <script id="fragment-shader-3d" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec4 v_color;
+        void main() {
+          gl_FragColor = v_color;
+        }
+      </script>
+
+    <script>
+
+
+
+        let gl
+        let attributeCoords
+        let uniformMatrix
+        let uniformColor
+        let bufferCoords
+
+        const init = () => {
+            // get a reference to the canvas and WebGL context
+            const canvas = document.querySelector("#canvas");
+
+            gl = canvas.getContext("webgl");
+
+            canvas.addEventListener(
+                "mousedown",
+                webglUtils.doMouseDown,
+                false);
+
+            window.addEventListener(
+                "keydown",
+                webglUtils.doKeyDown,
+                false);
+
+            // create and use a GLSL program
+            const program = webglUtils.createProgramFromScripts(gl, "#vertex-shader-3d", "#fragment-shader-3d");
+            gl.useProgram(program);
+
+            // get reference to GLSL attributes and uniforms
+            attributeCoords = gl.getAttribLocation(program, "a_coords");
+            const uniformResolution = gl.getUniformLocation(program, "u_resolution");
+            uniformMatrix = gl.getUniformLocation(program, "u_matrix");
+            uniformColor = gl.getUniformLocation(program, "u_color");
+
+            // initialize coordinate attribute to send each vertex to GLSL program
+            gl.enableVertexAttribArray(attributeCoords);
+
+            // initialize coordinate buffer to send array of vertices to GPU
+            bufferCoords = gl.createBuffer();
+
+            // configure canvas resolution and clear the canvas
+            gl.uniform2f(uniformResolution, gl.canvas.width, gl.canvas.height);
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            document.getElementById("tx").onchange = event => webglUtils.updateTranslation(event, "x")
+            document.getElementById("ty").onchange = event => webglUtils.updateTranslation(event, "y")
+            document.getElementById("tz").onchange = event => webglUtils.updateTranslation(event, "z")
+
+            document.getElementById("sx").onchange = event => webglUtils.updateScale(event, "x")
+            document.getElementById("sy").onchange = event => webglUtils.updateScale(event, "y")
+            document.getElementById("sz").onchange = event => webglUtils.updateScale(event, "z")
+
+            document.getElementById("rx").onchange = event => webglUtils.updateRotation(event, "x")
+            document.getElementById("ry").onchange = event => webglUtils.updateRotation(event, "y")
+            document.getElementById("rz").onchange = event => webglUtils.updateRotation(event, "z")
+
+            document.getElementById("fv").onchange = event => webglUtils.updateFieldOfView(event)
+
+            document.getElementById("color").onchange = event => webglUtils.updateColor(event)
+
+            document.getElementById("lookAt").onchange = event => webglUtils.toggleLookAt(event)
+            document.getElementById("ctx").onchange = event => webglUtils.updateCameraTranslation(event, "x")
+            document.getElementById("cty").onchange = event => webglUtils.updateCameraTranslation(event, "y")
+            document.getElementById("ctz").onchange = event => webglUtils.updateCameraTranslation(event, "z")
+            document.getElementById("crx").onchange = event => webglUtils.updateCameraRotation(event, "x")
+            document.getElementById("cry").onchange = event => webglUtils.updateCameraRotation(event, "y")
+            document.getElementById("crz").onchange = event => webglUtils.updateCameraRotation(event, "z")
+            document.getElementById("ltx").onchange = event => webglUtils.updateLookAtTranslation(event, 0)
+            document.getElementById("lty").onchange = event => webglUtils.updateLookAtTranslation(event, 1)
+            document.getElementById("ltz").onchange = event => webglUtils.updateLookAtTranslation(event, 2)
+
+            document.getElementById("lookAt").checked = lookAt
+            document.getElementById("ctx").value = camera.translation.x
+            document.getElementById("cty").value = camera.translation.y
+            document.getElementById("ctz").value = camera.translation.z
+            document.getElementById("crx").value = camera.rotation.x
+            document.getElementById("cry").value = camera.rotation.y
+            document.getElementById("crz").value = camera.rotation.z
+
+            webglUtils.selectShape(0)
+        }
+
+
+        const up = [0, 1, 0]
+        let target = [0, 0, 0]
+        let lookAt = true
+
+        const render = () => {
+            gl.bindBuffer(gl.ARRAY_BUFFER,
+                bufferCoords);
+            gl.vertexAttribPointer(
+                attributeCoords,
+                3, // size = 3 floats per vertex
+                gl.FLOAT,
+                false,
+                0,
+                0);
+
+            gl.enable(gl.CULL_FACE);
+            gl.enable(gl.DEPTH_TEST);
+
+            const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+            const zNear = 1;
+            const zFar = 2000;
+
+            let cameraMatrix = m4.identity();
+
+            if (lookAt) {
+                cameraMatrix = m4.translate(
+                    cameraMatrix,
+                    camera.translation.x,
+                    camera.translation.y,
+                    camera.translation.z)
+                const cameraPosition = [
+                    cameraMatrix[12],
+                    cameraMatrix[13],
+                    cameraMatrix[14]]
+                cameraMatrix = m4.lookAt(
+                    cameraPosition,
+                    target,
+                    up)
+                cameraMatrix = m4.inverse(cameraMatrix)
+            }
+            else {
+                cameraMatrix = m4.zRotate(
+                    cameraMatrix,
+                    m4.degToRad(camera.rotation.z));
+                cameraMatrix = m4.xRotate(
+                    cameraMatrix,
+                    m4.degToRad(camera.rotation.x));
+                cameraMatrix = m4.yRotate(
+                    cameraMatrix,
+                    m4.degToRad(camera.rotation.y));
+                cameraMatrix = m4.translate(
+                    cameraMatrix,
+                    camera.translation.x,
+                    camera.translation.y,
+                    camera.translation.z);
+            }
+            const projectionMatrix = m4.perspective(
+                fieldOfViewRadians, aspect, zNear, zFar);
+            const viewProjectionMatrix = m4.multiply(
+                projectionMatrix, cameraMatrix);
+
+
+
+
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, bufferCoords);
+
+            const $shapeList = $("#object-list")
+            $shapeList.empty()
+
+            shapes.forEach((shape, index) => {
+                const $li = $(`
+                <li>
+                    <button onclick="webglUtils.deleteShape(${index})">
+                        Delete
+                        </button>
+
+                    <label>
+                        <input
+                        type="radio"
+                        id="${shape.type}-${index}"
+                        name="shape-index"
+                        ${index === selectedShapeIndex ? "checked" : ""}
+                        onclick="webglUtils.selectShape(${index})"
+                        value="${index}"/>
+
+                        ${shape.type};
+                        X: ${shape.translation.x};
+                        Y: ${shape.translation.y}
+                        </label>
+                        </li>
+                        `)
+                $shapeList.append($li)
+
+
+                // compute transformation matrix
+                let M = computeModelViewMatrix(shape, viewProjectionMatrix)
+                // apply transformation matrix.
+                gl.uniformMatrix4fv(uniformMatrix, false, M)
+                gl.uniform4f(uniformColor,
+                    shape.color.red,
+                    shape.color.green,
+                    shape.color.blue, 1);
+
+                if (shape.type === CUBE) {
+                    webglUtils.renderCube(shape)
+                } else if (shape.type === RECTANGLE) {
+                    webglUtils.renderRectangle(shape)
+                } else if (shape.type === TRIANGLE) {
+                    webglUtils.renderTriangle(shape)
+                }
+            })
+        }
+
+        let fieldOfViewRadians = m4.degToRad(60)
+        const computeModelViewMatrix = (shape, viewProjectionMatrix) => {
+            M = m4.translate(viewProjectionMatrix,
+                shape.translation.x,
+                shape.translation.y,
+                shape.translation.z)
+            M = m4.xRotate(M, m4.degToRad(shape.rotation.x))
+            M = m4.yRotate(M, m4.degToRad(shape.rotation.y))
+            M = m4.zRotate(M, m4.degToRad(shape.rotation.z))
+            M = m4.scale(M, shape.scale.x, shape.scale.y, shape.scale.z)
+            return M
+        }
+        let selectedShapeIndex = 0
+
+
+    </script>
+
+</body>
+
+</html>
