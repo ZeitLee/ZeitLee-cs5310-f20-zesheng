@@ -127,7 +127,7 @@ const webglUtils = {
     document.getElementById("rx").value = shapes[selectedIndex].rotation.x
     document.getElementById("ry").value = shapes[selectedIndex].rotation.y
     document.getElementById("rz").value = shapes[selectedIndex].rotation.z
-    document.getElementById("fv").value = m4.radToDeg(fieldOfViewRadians)
+    document.getElementById("fv").value = webglUtils.radToDeg(fieldOfViewRadians)
     const hexColor = webglUtils.rgbToHex(shapes[selectedIndex].color)
     document.getElementById("color").value = hexColor
   },
@@ -161,6 +161,16 @@ const webglUtils = {
     const float32Array = new Float32Array(geometry)
     gl.bufferData(gl.ARRAY_BUFFER, float32Array, gl.STATIC_DRAW)
     var primitiveType = gl.TRIANGLES;
+    var normals = new Float32Array([
+      0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1,
+      0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1,
+      0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0,
+      0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,
+      -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0,
+      1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
+    ]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
     gl.drawArrays(gl.TRIANGLES, 0, 6 * 6);
   },
   renderRectangle: (rectangle) => {
@@ -177,7 +187,6 @@ const webglUtils = {
       x1, y1, 0, x2, y1, 0, x1, y2, 0,
       x1, y2, 0, x2, y1, 0, x2, y2, 0,
     ]), gl.STATIC_DRAW);
-
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   },
   renderTriangle: (triangle) => {
@@ -298,7 +307,7 @@ const webglUtils = {
 
     crx = crx - 2 * Math.sin(crz);
     cry = cry - 2 * Math.cos(crz);
-    
+
     document.getElementById("crx").value = crx;
     document.getElementById("cry").value = cry;
     camera.rotation.x = crx;
@@ -326,7 +335,7 @@ const webglUtils = {
     ctx = parseFloat(document.getElementById("ctx").value);
     cty = parseFloat(document.getElementById("cty").value);
     ctz = parseFloat(document.getElementById("ctz").value);
-    
+
     ctx = ctx - 5 * Math.sin(ry);
     cty = cty + 5 * Math.sin(rx);
     ctz = ctz + 5 * Math.cos(ry);
@@ -338,7 +347,7 @@ const webglUtils = {
     camera.translation.y = cty;
     camera.translation.z = ctz;
     render()
-  }, 
+  },
   updateCameraTranslation_left: () => {
     rx = document.getElementById("crx").value * Math.PI / 180;
     ry = document.getElementById("cry").value * Math.PI / 180;
@@ -346,7 +355,7 @@ const webglUtils = {
     ctx = parseFloat(document.getElementById("ctx").value);
     cty = parseFloat(document.getElementById("cty").value);
     ctz = parseFloat(document.getElementById("ctz").value);
-    
+
     ctx = ctx + 5 * Math.cos(ry) * Math.cos(rz);
     cty = cty - 5 * Math.sin(rz);
     ctz = ctz + 5 * Math.sin(ry) * Math.cos(rz);
@@ -358,7 +367,7 @@ const webglUtils = {
     camera.translation.y = cty;
     camera.translation.z = ctz;
     render()
-  }, 
+  },
   updateCameraTranslation_backward: () => {
     rx = document.getElementById("crx").value * Math.PI / 180;
     ry = document.getElementById("cry").value * Math.PI / 180;
@@ -366,7 +375,7 @@ const webglUtils = {
     ctx = parseFloat(document.getElementById("ctx").value);
     cty = parseFloat(document.getElementById("cty").value);
     ctz = parseFloat(document.getElementById("ctz").value);
-    
+
     ctx = ctx + 5 * Math.sin(ry);
     cty = cty - 5 * Math.sin(rx);
     ctz = ctz - 5 * Math.cos(ry);
@@ -378,7 +387,7 @@ const webglUtils = {
     camera.translation.y = cty;
     camera.translation.z = ctz;
     render()
-  }, 
+  },
   updateCameraTranslation_right: () => {
     rx = document.getElementById("crx").value * Math.PI / 180;
     ry = document.getElementById("cry").value * Math.PI / 180;
@@ -386,7 +395,7 @@ const webglUtils = {
     ctx = parseFloat(document.getElementById("ctx").value);
     cty = parseFloat(document.getElementById("cty").value);
     ctz = parseFloat(document.getElementById("ctz").value);
-    
+
     ctx = ctx - 5 * Math.cos(ry) * Math.cos(rz);
     cty = cty + 5 * Math.sin(rz);
     ctz = ctz - 5 * Math.sin(ry) * Math.cos(rz);
@@ -398,5 +407,11 @@ const webglUtils = {
     camera.translation.y = cty;
     camera.translation.z = ctz;
     render()
-  }, 
+  },
+  degToRad: (degrees) => degrees * Math.PI / 180,
+  radToDeg: (radians) => radians * 180 / Math.PI,
+  updateLightDirection: (event, index) => {
+    lightSource[index] = parseFloat(event.target.value)
+    render()
+  },
 }
