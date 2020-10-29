@@ -234,13 +234,13 @@
             else {
                 cameraMatrix = m4.zRotate(
                     cameraMatrix,
-                    m4.degToRad(camera.rotation.z));
+                    webglUtils.degToRad(camera.rotation.z));
                 cameraMatrix = m4.xRotate(
                     cameraMatrix,
-                    m4.degToRad(camera.rotation.x));
+                    webglUtils.degToRad(camera.rotation.x));
                 cameraMatrix = m4.yRotate(
                     cameraMatrix,
-                    m4.degToRad(camera.rotation.y));
+                    webglUtils.degToRad(camera.rotation.y));
                 cameraMatrix = m4.translate(
                     cameraMatrix,
                     camera.translation.x,
@@ -305,15 +305,15 @@
             })
         }
 
-        let fieldOfViewRadians = m4.degToRad(60)
+        let fieldOfViewRadians = webglUtils.degToRad(60)
         const computeModelViewMatrix = (shape, viewProjectionMatrix) => {
             M = m4.translate(viewProjectionMatrix,
                 shape.translation.x,
                 shape.translation.y,
                 shape.translation.z)
-            M = m4.xRotate(M, m4.degToRad(shape.rotation.x))
-            M = m4.yRotate(M, m4.degToRad(shape.rotation.y))
-            M = m4.zRotate(M, m4.degToRad(shape.rotation.z))
+            M = m4.xRotate(M, webglUtils.degToRad(shape.rotation.x))
+            M = m4.yRotate(M, webglUtils.degToRad(shape.rotation.y))
+            M = m4.zRotate(M, webglUtils.degToRad(shape.rotation.z))
             M = m4.scale(M, shape.scale.x, shape.scale.y, shape.scale.z)
             return M
         }
